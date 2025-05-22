@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Kendaraan</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .input-container {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .input-container label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .input-container input {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 400px;
+    }
+    .vehicle-group {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .vehicle-group button {
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: white;
+      background-color: #4CAF50;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .vehicle-group button:hover {
+      background-color: #45a049;
+    }
+    .category-container {
+      margin-top: 15px;
+      display: none;
+    }
+    .category {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .category.focused {
+      background-color: #eef;
+    }
+    .category-title {
+      font-size: 16px;
+      font-weight: bold;
+      flex: 2;
+      text-align: left;
+    }
+    .button-group {
+      flex: 3;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .count {
+      width: 50px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin: 0 10px;
+      color: #555;
+    }
+    #saveButton, #resetButton {
+      display: block;
+      margin: 20px auto;
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #007BFF;
+      border-radius: 8px;
+      color: white;
+      border: none;
+    }
+    #resetButton {
+      background-color: #f44336;
+    }
+    #resetButton:hover {
+      background-color: #e53935;
+    }
+    #saveButton:hover {
+      background-color: #0056b3;
+    }
+    .footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      padding-top: 20px;
+      border-top: 1px solid #ccc;
+    }
+    button.add-button {
+      background-color: #4CAF50;
+      color: white;
+    }
+    button.add-button:hover {
+      background-color: #45a049;
+    }
+    button.subtract-button {
+      background-color: #FFA500;
+      color: white;
+    }
+    button.subtract-button:hover {
+      background-color: #FF8C00;
+    }
+  </style>
+</head>
+<body>
+  <h1>MOVING CAR OBSERVER (MCO)</h1>
+
+  <div class="input-container">
+    <label for="namaRuas">Nama Ruas Jalan</label>
+    <input type="text" id="namaRuas" placeholder="Masukkan nama ruas jalan...">
+  </div>
+
+  <div id="buttonContainer"></div>
+  <button id="saveButton">Save ke Excel</button>
+  <button id="resetButton">Reset Hitungan</button>
+
+  <footer class="footer">
+    © 2024 Agimeka. All Rights Reserved.
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    const vehicleData = [
+      "Sepeda Motor",
+      "Kendaraan Ringan",
+      "Bus Kecil / Truck Kecil",
+      "Bus Besar",
+      "Truck Besar"
+    ];
+
+    const categories = ["Berlawanan", "Mendahului", "Parkir", "Terlalui", "Simpang"];
+    let activeIndex = 0;
+    let focusedCategories = [];
+
+    vehicleData.forEach(vehicle => {
+      const vehicleDiv = document.createElement('div');
+      vehicleDiv.className = 'vehicle-group';
+
+      const vehicleButton = document.createElement('button');
+      vehicleButton.textContent = vehicle;
+      vehicleButton.onclick = () => {
+        toggleCategories(vehicleDiv.querySelector('.category-container'));
+        vibrate();
+      };
+      vehicleDiv.appendChild(vehicleButton);
+
+      const categoryContainer = document.createElement('div');
+      categoryContainer.className = 'category-container';
+
+      categories.forEach(category => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'category';
+
+        const categoryTitle = document.createElement('span');
+        categoryTitle.className = 'category-title';
+        categoryTitle.textContent = category;
+
+        const countSpan = document.createElement('span');
+        countSpan.className = 'count';
+        countSpan.id = `${vehicle}-${category}-count`;
+        countSpan.textContent = "0";
+
+        const addButton = document.createElement('button');
+        addButton.textContent = "+";
+        addButton.className = 'add-button';
+        addButton.onclick = () => {
+          modifyCount(countSpan, 1);
+          vibrate();
+        };
+
+        const subtractButton = document.createElement('button');
+        subtractButton.textContent = "-";
+        subtractButton.className = 'subtract-button';
+        subtractButton.onclick = () => {
+          modifyCount(countSpan, -1);
+          vibrate();
+        };
+
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group';
+        buttonGroup.appendChild(subtractButton);
+        buttonGroup.appendChild(countSpan);
+        buttonGroup.appendChild(addButton);
+
+        categoryDiv.appendChild(categoryTitle);
+        categoryDiv.appendChild(buttonGroup);
+        categoryContainer.appendChild(categoryDiv);
+
+        categoryDiv.addEventListener('click', () => {
+          setActiveCategory(categoryDiv);
+        });
+
+        focusedCategories.push(categoryDiv);
+      });
+
+      vehicleDiv.appendChild(categoryContainer);
+      document.getElementById('buttonContainer').appendChild(vehicleDiv);
+    });
+
+    const toggleCategories = (categoryContainer) => {
+      categoryContainer.style.display = (categoryContainer.style.display === 'block') ? 'none' : 'block';
+    };
+
+    const modifyCount = (countSpan, value) => {
+      const count = parseInt(countSpan.textContent, 10);
+      countSpan.textContent = Math.max(count + value, 0);
+    };
+
+    const setActiveCategory = (categoryDiv) => {
+      focusedCategories.forEach(category => category.classList.remove('focused'));
+      categoryDiv.classList.add('focused');
+      activeIndex = focusedCategories.indexOf(categoryDiv);
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') {
+        activeIndex = (activeIndex - 1 + focusedCategories.length) % focusedCategories.length;
+        setActiveCategory(focusedCategories[activeIndex]);
+        vibrate();
+      } else if (e.key === 'ArrowDown') {
+        activeIndex = (activeIndex + 1) % focusedCategories.length;
+        setActiveCategory(focusedCategories[activeIndex]);
+        vibrate();
+      } else if (e.key === '2') {
+        const countSpan = focusedCategories[activeIndex].querySelector('.count');
+        modifyCount(countSpan, 1);
+        vibrate();
+      } else if (e.key === '1') {
+        const countSpan = focusedCategories[activeIndex].querySelector('.count');
+        modifyCount(countSpan, -1);
+        vibrate();
+      }
+    });
+
+    document.getElementById('resetButton').onclick = () => {
+      document.querySelectorAll('.count').forEach(countSpan => countSpan.textContent = "0");
+      vibrate();
+    };
+
+    document.getElementById('saveButton').onclick = () => {
+      const namaRuas = document.getElementById('namaRuas').value.trim();
+      if (!namaRuas) {
+        alert("Harap isi nama ruas jalan sebelum menyimpan.");
+        return;
+      }
+
+      const data = [{ "Nama Ruas Jalan": namaRuas }];
+      vehicleData.forEach(vehicle => {
+        const row = { Kendaraan: vehicle };
+        categories.forEach(category => {
+          const count = document.getElementById(`${vehicle}-${category}-count`).textContent;
+          row[category] = count;
+        });
+        data.push(row);
+      });
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Data Kendaraan");
+      XLSX.writeFile(wb, "Data_Kendaraan.xlsx");
+      vibrate();
+    };
+
+    const vibrate = () => {
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    };
+  </script>
+</body>
+</html>
